@@ -20,8 +20,8 @@ con.connect((err) => {
       Full_Name VARCHAR(255),
       Email VARCHAR(255),
       PasswordHash VARCHAR(255),
-      VirtualBalance DECIMAL(10, 2),
-      IsAdmin BOOLEAN
+      VirtualBalance DECIMAL(10, 2) DEFAULT 100,
+      IsAdmin BOOLEAN DEFAULT FALSE
     )`,
     `CREATE TABLE Vehicle (
       VehicleID INT AUTO_INCREMENT PRIMARY KEY,
@@ -83,5 +83,6 @@ con.connect((err) => {
       console.log('Query executed successfully.');
     });
   });
-  con.end();
 });
+
+module.exports = {con}
