@@ -72,7 +72,17 @@ con.connect((err) => {
       FOREIGN KEY (UserID) REFERENCES Users(UserID),
       FOREIGN KEY (VehicleID) REFERENCES Vehicle(VehicleID),
       FOREIGN KEY (ZoneID) REFERENCES ParkingZone(ZoneID)
-    )`
+    )`,
+    `CREATE TABLE Tokens (
+      TokenID INT AUTO_INCREMENT PRIMARY KEY,
+      UserID INT,
+      TokenValue VARCHAR(255) UNIQUE NOT NULL, -- Unique token value
+      ExpirationTime DATETIME, -- Timestamp indicating token expiration
+      TokenType ENUM('access', 'refresh') NOT NULL, -- Indicates whether it's an access or refresh token
+      CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp of token creation
+      FOREIGN KEY (UserID) REFERENCES Users(UserID)
+    );
+    `
   ];
 
   sqlQueries.forEach((query) => {
