@@ -16,14 +16,14 @@ app.get('/', (req, res) => {
 
 app.post('/register', (req, res) => {
     // Object destructuring
-    const { Full_Name, Email, password } = req.body;
+    const { Full_Name, Email, Password } = req.body;
     const emailRegex = /^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$/;
     // Hashing and salting password to save securely
     const saltRounds = 10;
     const salt = bcrypt.genSaltSync(saltRounds);
-    const PasswordHash = bcrypt.hashSync(password, salt);
+    const PasswordHash = bcrypt.hashSync(Password, salt);
 
-    if (!Full_Name || !Email || !password) {
+    if (!Full_Name || !Email || !Password) {
         return res.status(400).json({ error: "All fields are required!" });
     } else if (!emailRegex.test(Email)) {
         return res.status(400).json({ error: "Enter correct email" });
@@ -347,5 +347,148 @@ app.post('/update/car/:id', tokenExists, (req, res) => {
         }
     });
 });
+
+
+// this endpoint allows to add parking zones
+app.post('/add/zone', tokenExists, (req, res) => {
+    const { Name, Address, PricePerHour } = req.body
+    const values = [Name, Address, PricePerHour]
+
+    // check if all fields are provided
+    if (!Name || !Address || !PricePerHour) {
+        res.status(402).json({ error: "All fields are required." })
+    }
+
+    // check if any field is empty
+    values.forEach(element => {
+        if (typeof (element) === "Number" && element.trim().length === 0) {
+            res.status(402).json({ error: "No empty values are allowed." })
+        }
+    })
+
+    const searchQuery = "SELECT isAdmin FROM Users WHERE  UserID = ?"
+    con.query(searchQuery, req.user, (err, rows) => {
+        if (err) {
+            console.error('Error executing query:', err);
+            return;
+        }
+
+        // Check if the user is an admin
+        if (rows[0].isAdmin === 1) {
+            const addCar = `INSERT INTO ParkingZone ( Name, Address, PricePerHour) VALUES (?, ?, ?)`
+            con.query(addCar, values, (insertErr, insertResult) => {
+                if (insertErr) {
+                    console.error(insertErr);
+                    return res.status(500).json({ error: 'Error adding parking zone' });
+                }
+
+                res.status(200).json({ message: 'Parking zone successfully added' });
+            });
+
+        } else {
+            res.status(402).json({ error: "you are not admin" })
+        }
+    });
+})
+
+// this endpoint allows to list zones
+app.post('/list/zone', tokenExists, (req, res) => {
+
+    const searchQuery = "SELECT isAdmin FROM Users WHERE  UserID = ?"
+    con.query(searchQuery, req.user, (err, rows) => {
+        if (err) {
+            console.error('Error executing query:', err);
+            return;
+        }
+
+        // list all parking zones
+        const selectQuery = 'SELECT * FROM ParkingZone';
+        con.query(selectQuery, (err, results) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ error: 'Error querying parking zones' });
+            }
+
+            res.status(200).json(results)
+        });
+    })
+})
+
+// this endpoint allows to delete zones via id
+app.post('/delete/zone/:id', tokenExists, (req, res) => {
+
+    const ZoneID = req.params.id
+    const deleteQuery = 'DELETE FROM ParkingZone WHERE ZoneID = ?';
+
+    con.query(deleteQuery, [ZoneID], (err, result) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: 'Error deleting parking zones' });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Parking zone not found' });
+        }
+
+        res.status(200).json({message: "Parking zone has successfully deleted"})
+    });
+
+})
+
+// this endpoint allows to update zone via id
+app.post('/update/zone/:id', tokenExists, (req, res) => {
+    const ZoneID = req.params.id;
+    const { Name, Address, PricePerHour } = req.body;
+    const values = [Name, Address, PricePerHour];
+    const selectQuery = 'SELECT * FROM Vehicle WHERE VehicleID = ?';
+
+    // check if all fields are provided
+    if (!Name || !Address || !PricePerHour) {
+        return res.status(402).json({ error: "All fields are required." });
+    }
+
+    // check if any field is empty
+    values.forEach(element => {
+        if (typeof element !== "number" && element.trim().length === 0) {
+            return res.status(402).json({ error: "No empty values are allowed." });
+        }
+    });
+
+    con.query(selectQuery, [ZoneID], (err, result) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: 'Error updating parking zone' });
+        }
+
+        if (result.length === 0) {
+            return res.status(404).json({ error: 'Parking zone not found' });
+        }
+
+        let updatesCompleted = 0;
+        const updateCount = Object.keys(req.body).length;
+
+        // this loop helps to detect changed data
+        for (const item in req.body) {
+            // only update provided items
+            const updateQuery = `UPDATE ParkingZone SET ${item} = ? WHERE ZoneID = ?`;
+            const updateValues = [req.body[item], ZoneID];
+
+            con.query(updateQuery, updateValues, (err, result) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({ error: 'Error updating data' });
+                }
+
+                updatesCompleted++;
+
+                if (updatesCompleted === updateCount) {
+                    // All updates completed, send the response
+                    res.status(200).json({ message: 'Parking zone updated successfully' });
+                }
+            });
+        }
+    });
+});
+
 
 app.listen(3000)
