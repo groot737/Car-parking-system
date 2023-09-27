@@ -48,7 +48,7 @@ con.connect((err) => {
     `CREATE TABLE ParkingZone (
       ZoneID INT AUTO_INCREMENT PRIMARY KEY,
       Name VARCHAR(255) UNIQUE,
-      Address VARCHAR(255),
+      Address VARCHAR(255) UNIQUE,
       PricePerHour DECIMAL(10, 2)
     )`,
     `CREATE TABLE ActiveZones (
