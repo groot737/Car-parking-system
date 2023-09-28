@@ -31,20 +31,6 @@ con.connect((err) => {
       NumberPlate VARCHAR(255),
       FOREIGN KEY (UserID) REFERENCES Users(UserID)
     )`,
-    `CREATE TABLE ActiveCars (
-      ActiveCarID INT AUTO_INCREMENT PRIMARY KEY,
-      UserID INT,
-      VehicleID INT,
-      FOREIGN KEY (UserID) REFERENCES Users(UserID),
-      FOREIGN KEY (VehicleID) REFERENCES Vehicle(VehicleID)
-    )`,
-    `CREATE TABLE PreviousCars (
-      PreviousCarID INT AUTO_INCREMENT PRIMARY KEY,
-      UserID INT,
-      VehicleID INT,
-      FOREIGN KEY (UserID) REFERENCES Users(UserID),
-      FOREIGN KEY (VehicleID) REFERENCES Vehicle(VehicleID)
-    )`,
     `CREATE TABLE ParkingZone (
       ZoneID INT AUTO_INCREMENT PRIMARY KEY,
       Name VARCHAR(255) UNIQUE,
@@ -54,12 +40,13 @@ con.connect((err) => {
     `CREATE TABLE ActiveZones (
       ActiveZoneID INT AUTO_INCREMENT PRIMARY KEY,
       ZoneID INT,
-      FOREIGN KEY (ZoneID) REFERENCES ParkingZone(ZoneID)
-    )`,
-    `CREATE TABLE PreviousZones (
-      PreviousZoneID INT AUTO_INCREMENT PRIMARY KEY,
-      ZoneID INT,
-      FOREIGN KEY (ZoneID) REFERENCES ParkingZone(ZoneID)
+      StartDate DATE,
+      EndDate DATE,
+      StartHour TIME,
+      EndHour TIME,
+      UserID INT,
+      FOREIGN KEY (ZoneID) REFERENCES ParkingZone(ZoneID),
+      FOREIGN KEY (UserID) REFERENCES Users(UserID)
     )`,
     `CREATE TABLE ParkingHistory (
       HistoryID INT AUTO_INCREMENT PRIMARY KEY,
