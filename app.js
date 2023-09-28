@@ -5,6 +5,9 @@ const jwt = require('jsonwebtoken')
 const nodemailer = require('nodemailer')
 const { transporter } = require('./server_script/emailConfig')
 const tokenExists = require('./server_script/authMiddleware')
+const date = require('date-and-time')
+const { validateAndCompareHours } = require('./server_script/validateHour')
+const { calculateTotalHours } = require('./server_script/validateHour')
 const app = express()
 
 app.use(express.json())
@@ -430,7 +433,7 @@ app.post('/delete/zone/:id', tokenExists, (req, res) => {
             return res.status(404).json({ error: 'Parking zone not found' });
         }
 
-        res.status(200).json({message: "Parking zone has successfully deleted"})
+        res.status(200).json({ message: "Parking zone has successfully deleted" })
     });
 
 })
@@ -490,5 +493,82 @@ app.post('/update/zone/:id', tokenExists, (req, res) => {
     });
 });
 
-
+// this endpoint allows to book a zone via id
+app.post('/book/zone/:id', tokenExists, (req, res) => {
+    const { startDate, endDate, startHour, endHour } = req.body;
+    const values = [req.params.id, startDate, endDate, startHour, endHour, req.user];
+    const ZoneID = req.params.id; // Get the ZoneID from the URL parameter
+  
+    // Check if required fields are provided
+    if (!startDate || !endDate || !startHour || !endHour) {
+      return res.status(400).json({ error: 'All fields are required!' });
+    }
+  
+    // Validate date and time formats
+    if (!date.isValid(startDate, 'YYYY-MM-DD')) {
+      return res.status(400).json({ error: 'Wrong date format' });
+    }
+  
+    // Validate and compare startHour and endHour
+    if (!validateAndCompareHours(startHour, endHour)) {
+      return res.status(400).json({ error: 'Invalid hour format or endhour should be greater than starthour' });
+    }
+  
+    // Check if the zone exists
+    con.query('SELECT * FROM ParkingZone WHERE ZoneID = ?', [ZoneID], (err, result) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Error checking user' });
+      }
+  
+      if (result.length === 0) {
+        return res.status(402).json({ message: 'Zone not found' });
+      }
+  
+      // Check the user's balance and the required balance for booking
+      con.query('SELECT VirtualBalance, PricePerHour FROM Users WHERE UserID = ?', [req.user], (checkErr, checkResult) => {
+        if (checkErr) {
+          console.error(checkErr);
+          return res.status(500).json({ error: 'Internal server error' });
+        }
+  
+        const totalHours = calculateTotalHours(startDate, startHour, endDate, endHour);
+        const requiredBalance = totalHours * result[0]['PricePerHour'];
+  
+        if (requiredBalance > checkResult[0]['VirtualBalance']) {
+          return res.status(400).json({ error: 'Insufficient balance' });
+        }
+  
+        // Check for overlapping bookings
+        con.query(`
+          SELECT 1
+          FROM ActiveZones
+          WHERE ZoneID = ? 
+            AND (
+              (StartDate < ? AND EndDate > ?) OR
+              (StartDate = ? AND EndDate = ? AND (EndHour > ? OR StartHour < ?))
+            )`, [ZoneID, endDate, startDate, startDate, endDate, startHour, endHour], (overlapErr, overlapResult) => {
+          if (overlapErr) {
+            console.error(overlapErr);
+            return res.status(500).json({ error: 'Internal server error' });
+          }
+  
+          if (overlapResult.length > 0) {
+            return res.status(400).json({ error: 'Parking zone is taken in this time' });
+          }
+  
+          // If no errors and no overlaps, insert a new booking
+          con.query('INSERT INTO ActiveZones (ZoneID, StartDate, EndDate, StartHour, EndHour, UserID) VALUES (?,?,?,?,?,?)', values, (insertErr, insertResult) => {
+            if (insertErr) {
+              console.error(insertErr);
+              return res.status(500).json({ error: 'Error parking car' });
+            }
+            res.status(200).json({ message: 'You have purchased parking zone' });
+          });
+        });
+      });
+    });
+  });
+  
+  
 app.listen(3000)
