@@ -493,6 +493,85 @@ app.post('/update/zone/:id', tokenExists, (req, res) => {
     });
 });
 
+// this endpoint allows to list zones where car is parked
+app.post('/list/active-zone', tokenExists, (req, res) => {
+
+    const searchQuery = "SELECT isAdmin FROM Users WHERE  UserID = ?"
+    con.query(searchQuery, req.user, (err, rows) => {
+
+        if (err) {
+            console.error('Error executing query:', err);
+            return;
+        }
+
+        // Check if the user is an admin
+        if (rows[0].isAdmin === 1) {
+            const listZone = `SELECT * FROM ActiveZones`
+            con.query(listZone, (listErr, listtResult) => {
+                if (listErr) {
+                    console.error(listErr);
+                    return res.status(500).json({ error: 'Error list active parking zones' });
+                }
+
+                res.status(200).json(listtResult);
+            });
+
+        } else {
+            res.status(402).json({ error: "you are not admin" })
+        }
+    });
+})
+
+// this endpoint allows to list parking zones history
+app.post('/parkinghistory/all', tokenExists, (req, res) => {
+
+    const searchQuery = "SELECT isAdmin FROM Users WHERE  UserID = ?"
+    con.query(searchQuery, req.user, (err, rows) => {
+
+        if (err) {
+            console.error('Error executing query:', err);
+            return;
+        }
+
+        // Check if the user is an admin
+        if (rows[0].isAdmin === 1) {
+            const listZone = `SELECT * FROM ParkingHistory`
+            con.query(listZone, (listErr, listtResult) => {
+                if (listErr) {
+                    console.error(listErr);
+                    return res.status(500).json({ error: 'Error list parking history' });
+                }
+
+                if(listtResult.length === 0){
+                    res.status(200).json({message: "no parking history"});
+                }
+                res.status(200).json(listtResult);
+            });
+
+        } else {
+            res.status(402).json({ error: "you are not admin" })
+        }
+    });
+})
+
+// this endpoint allows to show user parking history and not requires admin 
+app.post('/parkinghistory/', tokenExists, (req, res) => {
+    const parkingHistory = 'SELECT * FROM ParkingHistory WHERE UserID = ?'
+    con.query(parkingHistory, req.user, (historyErr, historyResult) => {
+
+        if(historyErr){
+            console.error(err);
+            return res.status(500).json({ error: 'Error showing parking history' });
+        }
+
+        if(historyResult.length === 0){
+            res.status(403).json({message: "no parking history"})
+        }
+
+        res.status(200).json(historyResult)
+    })
+})
+
 // this endpoint allows to book a zone via id
 app.post('/book/zone/:id', tokenExists, (req, res) => {
     const { startDate, endDate, startHour, endHour } = req.body;
