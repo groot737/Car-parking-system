@@ -10,7 +10,7 @@ function tokenExists(req, res, next) {
     }
 
     // Check if the token exists in the database
-    const selectTokenQuery = 'SELECT TokenValue, UserID FROM Tokens WHERE TokenValue = ?';
+    const selectTokenQuery = 'SELECT TokenValue, UserID FROM carparking.Tokens WHERE TokenValue = ?';
 
     con.query(selectTokenQuery, [providedToken], (err, results) => {
         if (err) {
