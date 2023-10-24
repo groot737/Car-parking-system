@@ -32,7 +32,7 @@ app.post('/register', (req, res) => {
         return res.status(400).json({ error: "Enter correct email" });
     }
     // SQL query to check if user exists with this email
-    const selectQuery = 'SELECT * FROM Users WHERE Email = ?';
+    const selectQuery = 'SELECT * FROM carparking.Users WHERE Email = ?';
 
     con.query(selectQuery, [Email], (err, result) => {
         if (err) {
@@ -45,7 +45,7 @@ app.post('/register', (req, res) => {
         }
 
         // Inserting data and handling errors
-        const insertQuery = `INSERT INTO Users (Full_Name, Email, PasswordHash) VALUES (?, ?, ?)`;
+        const insertQuery = `INSERT INTO carparking.Users (Full_Name, Email, PasswordHash) VALUES (?, ?, ?)`;
         const values = [Full_Name, Email, PasswordHash];
 
         con.query(insertQuery, values, (insertErr, insertResult) => {
@@ -70,7 +70,7 @@ app.post('/login', (req, res) => {
     }
 
     // sql query to check if email exists
-    const selectQuery = 'SELECT * FROM Users WHERE Email = ?';
+    const selectQuery = 'SELECT * FROM carparking.Users WHERE Email = ?';
     con.query(selectQuery, [Email], (err, results) => {
         if (err) {
             // if  api can't connect to db show error
@@ -99,7 +99,7 @@ app.post('/login', (req, res) => {
             const token = jwt.sign({ userId: user.UserID }, 'secret', { expiresIn: '1h' });
 
             // Check if the user already has an access token
-            const selectTokenQuery = 'SELECT * FROM Tokens WHERE UserID = ? AND TokenType = ?';
+            const selectTokenQuery = 'SELECT * FROM carparking.Tokens WHERE UserID = ? AND TokenType = ?';
 
             con.query(selectTokenQuery, [user.UserID, 'access'], (selectTokenErr, selectTokenResults) => {
                 if (selectTokenErr) {
@@ -109,7 +109,7 @@ app.post('/login', (req, res) => {
 
                 if (selectTokenResults.length > 0) {
                     // If an access token exists, delete it to not overload db
-                    const deleteTokenQuery = 'DELETE FROM Tokens WHERE UserID = ? AND TokenType = ?';
+                    const deleteTokenQuery = 'DELETE FROM carparking.Tokens WHERE UserID = ? AND TokenType = ?';
 
                     con.query(deleteTokenQuery, [user.UserID, 'access'], (deleteTokenErr, deleteTokenResult) => {
                         if (deleteTokenErr) {
@@ -128,7 +128,7 @@ app.post('/login', (req, res) => {
 
             // write function to insert new record in token table
             function insertAccessToken(userId, accessToken) {
-                const insertTokenQuery = 'INSERT INTO Tokens (UserID, TokenValue, TokenType, ExpirationTime) VALUES (?, ?, ?, NOW() + INTERVAL 1 HOUR)';
+                const insertTokenQuery = 'INSERT INTO carparking.Tokens (UserID, TokenValue, TokenType, ExpirationTime) VALUES (?, ?, ?, NOW() + INTERVAL 1 HOUR)';
 
                 con.query(insertTokenQuery, [userId, accessToken, 'access'], (insertTokenErr, insertTokenResult) => {
                     if (insertTokenErr) {
@@ -148,7 +148,7 @@ app.post('/login', (req, res) => {
 app.post('/recover', (req, res) => {
     const { Email } = req.body;
     const emailRegex = /^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$/;
-    const checkEmail = 'SELECT * FROM Users WHERE Email = ?';
+    const checkEmail = 'SELECT * FROM carparking.Users WHERE Email = ?';
 
     // Validate email format
     if (!Email || !emailRegex.test(Email)) {
@@ -174,7 +174,7 @@ app.post('/recover', (req, res) => {
         const token = jwt.sign({ userId: user.UserID }, 'secret', { expiresIn: '1h' });
 
         // Query to check if a refresh token already exists for the user
-        const refreshTokenQuery = 'SELECT * FROM Tokens WHERE UserID = ? AND TokenType = ?';
+        const refreshTokenQuery = 'SELECT * FROM carparking.Tokens WHERE UserID = ? AND TokenType = ?';
 
         con.query(refreshTokenQuery, [user.UserID, 'refresh'], (refreshTokenErr, refreshTokenResults) => {
             if (refreshTokenErr) {
@@ -184,7 +184,7 @@ app.post('/recover', (req, res) => {
 
             if (refreshTokenResults.length > 0) {
                 // If a refresh token exists, delete it from the database
-                const deleteTokenQuery = 'DELETE FROM Tokens WHERE UserID = ? AND TokenType = ?';
+                const deleteTokenQuery = 'DELETE FROM carparking.Tokens WHERE UserID = ? AND TokenType = ?';
 
                 con.query(deleteTokenQuery, [user.UserID, 'refresh'], (deleteTokenErr, deleteTokenResult) => {
                     if (deleteTokenErr) {
@@ -203,7 +203,7 @@ app.post('/recover', (req, res) => {
 
         // Function to insert a new record in the token table
         function insertRefreshToken(userId, refreshToken) {
-            const insertTokenQuery = 'INSERT INTO Tokens (UserID, TokenValue, TokenType, ExpirationTime) VALUES (?, ?, ?, NOW() + INTERVAL 1 HOUR)';
+            const insertTokenQuery = 'INSERT INTO carparking.Tokens (UserID, TokenValue, TokenType, ExpirationTime) VALUES (?, ?, ?, NOW() + INTERVAL 1 HOUR)';
 
             con.query(insertTokenQuery, [userId, refreshToken, 'refresh'], (refreshTokenErr, refreshTokenResult) => {
                 if (refreshTokenErr) {
@@ -252,31 +252,32 @@ app.post('/change/password', tokenExists, (req, res) => {
 
 // this endpoint allows to add vehicles
 app.post('/add/car', tokenExists, (req, res) => {
-    const { Name, Type, NumberPlate } = req.body
-    const UserID = req.user
-    const values = [UserID, Name, Type, NumberPlate]
+    const { Name, Type, NumberPlate } = req.body;
+    const UserID = req.user;
+    const values = [UserID, Name, Type, NumberPlate];
+
     // check if any field is empty
     if (!Name || !Type || !NumberPlate) {
-        res.status(402).json({ error: "All fields are required!" })
+        return res.status(402).json({ error: "All fields are required!" });
     }
 
-    // sql commmand to insert data
-    const insertQuery = `INSERT INTO Vehicle (UserID, Name, Type, NumberPlate) VALUES (?, ?, ?, ?)`;
+    // sql command to insert data
+    const insertQuery = `INSERT INTO carparking.Vehicle (UserID, Name, Type, NumberPlate) VALUES (?, ?, ?, ?)`;
     con.query(insertQuery, values, (insertErr, insertResult) => {
         if (insertErr) {
             console.error(insertErr);
             return res.status(500).json({ error: 'Error adding car' });
         }
-        res.status(200).json({ message: 'Car successfully added' });
+        return res.status(200).json({ message: 'Car successfully added' });
     });
+});
 
-})
 
 // this endpoint allows to list user vehicles
 app.post('/list/car', tokenExists, (req, res) => {
     const UserID = req.user
     // select all vehicles via user id then list vehicles
-    const selectQuery = 'SELECT * FROM Vehicle WHERE UserID = ?';
+    const selectQuery = 'SELECT * FROM carparking.Vehicle WHERE UserID = ?';
     con.query(selectQuery, [UserID], (err, results) => {
         if (err) {
             console.error(err);
@@ -293,7 +294,7 @@ app.post('/delete/car/:id', tokenExists, (req, res) => {
     const VehicleID = req.params.id
 
     // get vehichle by id then delete it
-    const deleteQuery = 'DELETE FROM Vehicle WHERE VehicleID = ?';
+    const deleteQuery = 'DELETE FROM carparking.Vehicle WHERE VehicleID = ?';
     con.query(deleteQuery, [VehicleID], (err, result) => {
         if (err) {
             console.error(err);
@@ -312,7 +313,7 @@ app.post('/delete/car/:id', tokenExists, (req, res) => {
 app.post('/update/car/:id', tokenExists, (req, res) => {
     const VehicleID = req.params.id;
     const { Name, Type, NumberPlate } = req.body;
-    const selectQuery = 'SELECT * FROM Vehicle WHERE VehicleID = ?';
+    const selectQuery = 'SELECT * FROM carparking.Vehicle WHERE VehicleID = ?';
 
     // check if any field is empty
     for (const item in req.body) {
@@ -369,7 +370,7 @@ app.post('/add/zone', tokenExists, (req, res) => {
         }
     })
 
-    const searchQuery = "SELECT isAdmin FROM Users WHERE  UserID = ?"
+    const searchQuery = "SELECT isAdmin FROM carparking.Users WHERE  UserID = ?"
     con.query(searchQuery, req.user, (err, rows) => {
         if (err) {
             console.error('Error executing query:', err);
@@ -378,7 +379,7 @@ app.post('/add/zone', tokenExists, (req, res) => {
 
         // Check if the user is an admin
         if (rows[0].isAdmin === 1) {
-            const addCar = `INSERT INTO ParkingZone ( Name, Address, PricePerHour) VALUES (?, ?, ?)`
+            const addCar = `INSERT INTO carparking.ParkingZone ( Name, Address, PricePerHour) VALUES (?, ?, ?)`
             con.query(addCar, values, (insertErr, insertResult) => {
                 if (insertErr) {
                     console.error(insertErr);
@@ -397,7 +398,7 @@ app.post('/add/zone', tokenExists, (req, res) => {
 // this endpoint allows to list zones
 app.post('/list/zone', tokenExists, (req, res) => {
 
-    const searchQuery = "SELECT isAdmin FROM Users WHERE  UserID = ?"
+    const searchQuery = "SELECT isAdmin FROM carparking.Users WHERE  UserID = ?"
     con.query(searchQuery, req.user, (err, rows) => {
         if (err) {
             console.error('Error executing query:', err);
@@ -405,7 +406,7 @@ app.post('/list/zone', tokenExists, (req, res) => {
         }
 
         // list all parking zones
-        const selectQuery = 'SELECT * FROM ParkingZone';
+        const selectQuery = 'SELECT * FROM carparking.ParkingZone';
         con.query(selectQuery, (err, results) => {
             if (err) {
                 console.error(err);
@@ -421,7 +422,7 @@ app.post('/list/zone', tokenExists, (req, res) => {
 app.post('/delete/zone/:id', tokenExists, (req, res) => {
 
     const ZoneID = req.params.id
-    const deleteQuery = 'DELETE FROM ParkingZone WHERE ZoneID = ?';
+    const deleteQuery = 'DELETE FROM carparking.ParkingZone WHERE ZoneID = ?';
 
     con.query(deleteQuery, [ZoneID], (err, result) => {
         if (err) {
@@ -443,7 +444,7 @@ app.post('/update/zone/:id', tokenExists, (req, res) => {
     const ZoneID = req.params.id;
     const { Name, Address, PricePerHour } = req.body;
     const values = [Name, Address, PricePerHour];
-    const selectQuery = 'SELECT * FROM Vehicle WHERE VehicleID = ?';
+    const selectQuery = 'SELECT * FROM carparking.Vehicle WHERE VehicleID = ?';
 
     // check if all fields are provided
     if (!Name || !Address || !PricePerHour) {
@@ -496,7 +497,7 @@ app.post('/update/zone/:id', tokenExists, (req, res) => {
 // this endpoint allows to list zones where car is parked
 app.post('/list/active-zone', tokenExists, (req, res) => {
 
-    const searchQuery = "SELECT isAdmin FROM Users WHERE  UserID = ?"
+    const searchQuery = "SELECT isAdmin FROM carparking.Users WHERE  UserID = ?"
     con.query(searchQuery, req.user, (err, rows) => {
 
         if (err) {
@@ -506,7 +507,7 @@ app.post('/list/active-zone', tokenExists, (req, res) => {
 
         // Check if the user is an admin
         if (rows[0].isAdmin === 1) {
-            const listZone = `SELECT * FROM ActiveZones`
+            const listZone = `SELECT * FROM carparking.ActiveZones`
             con.query(listZone, (listErr, listtResult) => {
                 if (listErr) {
                     console.error(listErr);
@@ -525,7 +526,7 @@ app.post('/list/active-zone', tokenExists, (req, res) => {
 // this endpoint allows to list parking zones history
 app.post('/parkinghistory/all', tokenExists, (req, res) => {
 
-    const searchQuery = "SELECT isAdmin FROM Users WHERE  UserID = ?"
+    const searchQuery = "SELECT isAdmin FROM carparking.Users WHERE  UserID = ?"
     con.query(searchQuery, req.user, (err, rows) => {
 
         if (err) {
@@ -535,7 +536,7 @@ app.post('/parkinghistory/all', tokenExists, (req, res) => {
 
         // Check if the user is an admin
         if (rows[0].isAdmin === 1) {
-            const listZone = `SELECT * FROM ParkingHistory`
+            const listZone = `SELECT * FROM carparking.ParkingHistory`
             con.query(listZone, (listErr, listtResult) => {
                 if (listErr) {
                     console.error(listErr);
@@ -556,7 +557,7 @@ app.post('/parkinghistory/all', tokenExists, (req, res) => {
 
 // this endpoint allows to show user parking history and not requires admin 
 app.post('/parkinghistory/', tokenExists, (req, res) => {
-    const parkingHistory = 'SELECT * FROM ParkingHistory WHERE UserID = ?'
+    const parkingHistory = 'SELECT * FROM carparking.ParkingHistory WHERE UserID = ?'
     con.query(parkingHistory, req.user, (historyErr, historyResult) => {
 
         if(historyErr){
@@ -594,7 +595,7 @@ app.post('/book/zone/:id', tokenExists, (req, res) => {
     }
   
     // Check if the zone exists
-    con.query('SELECT * FROM ParkingZone WHERE ZoneID = ?', [ZoneID], (err, result) => {
+    con.query('SELECT * FROM carparking.ParkingZone WHERE ZoneID = ?', [ZoneID], (err, result) => {
       if (err) {
         console.error(err);
         return res.status(500).json({ error: 'Error checking user' });
@@ -605,7 +606,7 @@ app.post('/book/zone/:id', tokenExists, (req, res) => {
       }
   
       // Check the user's balance and the required balance for booking
-      con.query('SELECT VirtualBalance, PricePerHour FROM Users WHERE UserID = ?', [req.user], (checkErr, checkResult) => {
+      con.query('SELECT VirtualBalance FROM carparking.Users WHERE UserID = ?', [req.user], (checkErr, checkResult) => {
         if (checkErr) {
           console.error(checkErr);
           return res.status(500).json({ error: 'Internal server error' });
@@ -621,7 +622,7 @@ app.post('/book/zone/:id', tokenExists, (req, res) => {
         // Check for overlapping bookings
         con.query(`
           SELECT 1
-          FROM ActiveZones
+          FROM carparking.ActiveZones
           WHERE ZoneID = ? 
             AND (
               (StartDate < ? AND EndDate > ?) OR
@@ -637,7 +638,7 @@ app.post('/book/zone/:id', tokenExists, (req, res) => {
           }
   
           // If no errors and no overlaps, insert a new booking
-          con.query('INSERT INTO ActiveZones (ZoneID, StartDate, EndDate, StartHour, EndHour, UserID) VALUES (?,?,?,?,?,?)', values, (insertErr, insertResult) => {
+          con.query('INSERT INTO carparking.ActiveZones (ZoneID, StartDate, EndDate, StartHour, EndHour, UserID) VALUES (?,?,?,?,?,?)', values, (insertErr, insertResult) => {
             if (insertErr) {
               console.error(insertErr);
               return res.status(500).json({ error: 'Error parking car' });
