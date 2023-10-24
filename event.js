@@ -39,7 +39,7 @@ IF current_user_id IS NOT NULL AND zone_price IS NOT NULL THEN
     END IF;
     
     -- Check if an hour has passed since the last deduction
-    IF TIMESTAMPDIFF(MINUTE, (SELECT last_cut_time FROM ActiveZones WHERE UserID = current_user_id), NOW()) >= 1 THEN
+    IF TIMESTAMPDIFF(MINUTE, (SELECT last_cut_time FROM ActiveZones WHERE UserID = current_user_id), NOW()) = 59 THEN
         -- Deduct zone_price from the user's VirtualBalance every 60 minutes and update last_cut_time
         UPDATE ActiveZones
         SET last_cut_time = NOW()
