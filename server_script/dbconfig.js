@@ -5,6 +5,7 @@ const con = mysql.createConnection({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASS,
+  // port: 8889,
   database: 'carparking'
 });
 
@@ -45,19 +46,19 @@ con.connect((err) => {
       StartHour TIME,
       EndHour TIME,
       UserID INT,
+      executed INT DEFAULT 0,
+      last_cut_time TIMESTAMP,
       FOREIGN KEY (ZoneID) REFERENCES ParkingZone(ZoneID),
       FOREIGN KEY (UserID) REFERENCES Users(UserID)
     )`,
     `CREATE TABLE ParkingHistory (
       HistoryID INT AUTO_INCREMENT PRIMARY KEY,
       UserID INT,
-      VehicleID INT,
       ZoneID INT,
       StartTime DATETIME,
       EndTime DATETIME,
       AmountCharged DECIMAL(10, 2),
       FOREIGN KEY (UserID) REFERENCES Users(UserID),
-      FOREIGN KEY (VehicleID) REFERENCES Vehicle(VehicleID),
       FOREIGN KEY (ZoneID) REFERENCES ParkingZone(ZoneID)
     )`,
     `CREATE TABLE Tokens (
