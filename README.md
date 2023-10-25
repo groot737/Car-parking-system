@@ -51,9 +51,14 @@ To get started with the Car Parking System API, follow these steps:
 
 3. **Add environment variables:**
    ```bash
-   DB_HOST 
-   DB_USER 
-   DB_PASS 
-   HOST 
-   LOGIN 
-   PASS 
+   DB_HOST = 'db credentials'
+   DB_USER = 'db credentials'
+   DB_PASS = ' db credentials'
+   HOST = 'smtp credentials'
+   LOGIN = 'smtp credentials'
+   PASS  = 'smtp credentials'
+   
+3. **First run following files:**
+   ```bash
+   node dbconfig.js
+   node event.js
